@@ -1,11 +1,12 @@
 {
   "name": "inkspire",
-  "version": "1.0.0",
-  "main": "index.js",
+  "version": "0.1.0",
+  "main": "engine.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/engine.js"
   },
   "author": "Lightning",
-  "license": "UNLICENSED",
-  "description": ""
+  "license": "SEE LICENSE IN LICENSE.md",
+  "description": "Inkspire is a text adventure engine, designed to make building your own text adventures as easy as possible."
 }
