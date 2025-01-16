@@ -1,0 +1,188 @@
+{
+  "title": "C++ Escape",
+  "name": "cpp_escape",
+  "author": "Lightning",
+  "version": 1,
+  "actions": "hasRope=0,hasHook=0,hasGrapple=0",
+  "requires": "",
+  "scenes": [
+    {
+      "title": "Trapped",
+      "name": "start",
+      "content": [
+        "You are standing in a small room. In front of you, there is a wooden chest. Behind you there is a splintery old door."
+      ],
+      "options": [
+        {"label": "Open the chest", "target": "chest"},
+        {"label": "Open the door", "target": "door"},
+        {"label": "Do nothing", "target": "nothing"}
+      ]
+    },
+    {
+      "title": "Chest",
+      "name": "chest",
+      "content": [
+        "You carefully open the chest and look inside. There's nothing inside it, unfortunately."
+      ],
+      "options": [
+        {"label": "Look harder", "target": "rope"},
+        {"label": "Open the door", "target": "door"},
+        {"label": "Do nothing", "target": "nothing"}
+      ]
+    },
+    {
+      "title": "Hidden Rope",
+      "name": "rope",
+      "content": [
+        "?{hasRope=0?You tap the bottom of the chest and realize that it's hollow. With some work, you manage to pry it up, and you find a hidden compartment. It's only 6\" deep, but you see a coil of rope inside!}",
+        "?{hasRope=0?[Obtained] +Rope}",
+        "There isn't anything in the chest now, so you look back to the rest of the room."
+      ],
+      "options": [
+        {"label": "", "target": "start", "actions": "hasRope=1"}
+      ]
+    },
+    {
+      "title": "Do Nothing",
+      "name": "nothing",
+      "content": [
+        "You stand still for a while... Nothing happens."
+      ],
+      "options": [
+        {"label": "Open the chest", "target": "chest"},
+        {"label": "Open the door", "target": "door"},
+        {"label": "Keep doing nothing", "target": "nothing2"}
+      ]
+    },
+    {
+      "title": "Do Nothing... Again",
+      "name": "nothing2",
+      "content": [
+        "You continue standing still... Nothing continues to happen."
+      ],
+      "options": [
+        {"label": "Open the chest", "target": "chest"},
+        {"label": "Open the door", "target": "door"},
+        {"label": "Please don't pick this option to do nothing!", "target": "nothing3"}
+      ]
+    },
+    {
+      "title": "Apathy",
+      "name": "nothing3",
+      "content": [
+        "Clearly you don't want to play this game. Fine."
+      ],
+      "options": [
+        {"label":  "", "target": "inkspire:exit"}
+      ]
+    },
+    {
+      "title": "Door",
+      "name": "door",
+      "content": [
+        "You go to the door to your room, which is slightly open, and look into a long hallway. You can see a door on the other side, as well as a trapdoor in the ceiling."
+      ],
+      "options": [
+        {"label": "Go back into the first room", "target": "start"},
+        {"label": "Go to the second room", "target": "room"},
+        {"label": "Try to reach the trapdoor", "target": "trapdoor"}
+      ]
+    },
+    {
+      "title": "Far Room",
+      "name": "room",
+      "content": [
+        "The room through the far door has a large hole in the floor. You can't see any ceiling; everything above you is darkness. A decrepit, rusty chain hangs from somewhere high above you.",
+        "?{hasHook=1?The chain ends abruptly, a broken link betraying the place where the hook used to be:There is a large hook on the end of the chain}."
+      ],
+      "options": [
+        {"label": "Climb the chain", "target": "climb"},
+        {"label": "Jump into the hole", "target": "fall"},
+        {"label": "Try to break the hook off the chain", "target": "hook", "condition": "hasHook=0"},
+        {"label": "Return to the hallway", "target": "door"}
+      ]
+    },
+    {
+      "title": "Climbing",
+      "name": "climb",
+      "content": [
+        "You try to climb the chain, but it's so old it's practically falling apart. OH NO! Wait, it is falling apart. The chain gives way under your weight!"
+      ],
+      "options": [
+        {"label": "", "target": "fall"}
+      ]
+    },
+    {
+      "title": "Falling",
+      "name": "fall",
+      "content": [
+        "You tumble into the hole and fall for several seconds...",
+        "...",
+        "SPLAT"
+      ],
+      "options": [
+        {"label": "", "target":  "inkspire:fail"}
+      ]
+    },
+    {
+      "title": "The Hook",
+      "name": "hook",
+      "content": [
+        "The chain is very rusty. In fact, it's basically falling apart at this point. Good thing you didn't try to climb this!",
+        "It's not too hard to break the hook off. Surprisingly, the hook is actually in good condition. It appears to be made of some kind of stronger material.",
+        "[Obtained] +Hook",
+        "You consider the room again..."
+      ],
+      "options": [
+        {"label": "", "target": "room", "actions":"hasHook=1"}
+      ]
+    },
+    {
+      "title": "Trapdoor",
+      "name": "trapdoor",
+      "content": [
+        "The trapdoor is open, but it's well out of your reach. You consider your options..."
+      ],
+      "options": [
+        {"label": "Ignore the trapdoor for now", "target": "door"},
+        {"label": "Try to climb the wall", "target": "slip"},
+        {"label": "Tie the rope to the hook", "target": "trapdoor", "condition":"hasRope=1 && hasHook=1 && hasGrapple=0", "actions": "hasGrapple=1"},
+        {"label": "Throw your improvised grapple through the trap door", "target": "grapple", "condition":"hasGrapple=1"}
+      ]
+    },
+    {
+      "title": "Slippery",
+      "name": "slip",
+      "content": [
+        "You try to climb the wall, but it's smooth, wet, and very slippery. You quickly realize that this is pointless."
+      ],
+      "options": [
+        {"label": "Go back to the hallway", "target": "door"}
+      ]
+    },
+    {
+      "title": "Freedom",
+      "name": "grapple",
+      "content": [
+        "Carefully, you tie the rope to the hook. Then, you toss the hook through the trapdoor. After a few tries, you manage to get it to catch, and you use the rope to climb up. As you climb through the door, you see a long tunnel with bright light at the end. You run towards the light and come out of a cave into the world. You are free!"
+      ],
+      "options": [
+        {"label":  "Victory!", "target": "inkspire:pass"}
+      ]
+    },
+    {
+      "title": "Freedom",
+      "name": "unreachable",
+      "content": [
+        "Well... This is awkward... You weren't supposed to be able to get here!",
+        "Please send some info about your play through to a developer so they can try to figure out what went wrong.",
+        "Well, I guess you win...",
+        "Darn, that's not satisfying at all!!",
+        "Well, if you want to earn a more satisfying ending, you'll have to restart the adventure. Sorry 'bout that."
+      ],
+      "options": [
+        {"label":  "", "target": "inkspire:exit"}
+      ]
+    }
+  ]
+}

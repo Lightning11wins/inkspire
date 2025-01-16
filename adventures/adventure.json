@@ -1,0 +1,55 @@
+{
+  "title": "Test Adventure",
+  "name": "adventure",
+  "author": "Lightning",
+  "version": 1,
+  "actions": "x=7;n=1",
+  "requires": "cpp_escape",
+  "startingScene": "intro",
+  "scenes": [
+    {
+      "title": "Welcome to Inkspire",
+      "name": "intro",
+      "content": ["Inkspire is a text adventure engine."],
+      "options": [
+        {"label": "Test adventure", "target": "adventure:test"},
+        {"label": "Load adventure", "target": "cpp_escape:start"},
+        {"label": "Check out documentation", "target": "docs"},
+        {"label": "Do Math", "target": "math"}
+      ]
+    },
+    {
+      "title": "Math (part ${n})",
+      "name": "math",
+      "actions": "n+=1;val=(x*14-n*12)%16",
+      "content": ["Current value ${x}.","This value is ?{x=2..5?right:wrong}!"],
+      "options": [
+        {"label": "Add 1", "target": "math", "actions":  "x+=1"},
+        {"label": "Subtract 1", "target": "math", "actions":  "x-=1"},
+        {"label": "Multiply by 2", "target": "math", "actions":  "x*=2"},
+        {"label": "Multiply by ${n}", "target": "math", "actions":  "x*=n"},
+        {"label": "Divide by 2", "target": "math", "actions":  "x/=2"},
+        {"label": "Divide by ${n}", "target": "math", "actions":  "x/=n"},
+        {"label": "Add ${val}", "target": "math", "actions":  "x+=val"}
+      ]
+    },
+    {
+      "title": "Test adventure",
+      "name": "test",
+      "content": ["Test an inkspire adventure :D"],
+      "options": [
+        {"label": "Return to intro", "target": "intro"},
+        {"label": "Check out documentation", "target": "docs"}
+      ]
+    },
+    {
+      "title": "Docs",
+      "name": "docs",
+      "content": ["HA, YOU THINK I ACTUALLY DOCUMENTED ANYTHING!! That's funny."],
+      "options": [
+        {"label": "Return to intro", "target": "intro"},
+        {"label": "Check out documentation", "target": "docs"}
+      ]
+    }
+  ]
+}
