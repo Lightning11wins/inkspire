@@ -24,7 +24,7 @@ class Action {
 		return (actions)
 			? actions
 				.split(separatorRegex)
-				.map((action) => action.replaceAll(' ','').trim())
+				.map((action) => action.replaceAll(' ', '').trim())
 				.map((action) => new Action(action, variables, defaultNamespace, context))
 			: [];
 	}
@@ -93,7 +93,7 @@ class Action {
 					operatorStack.length &&
 					operators[operatorStack[operatorStack.length - 1]] &&
 					/^[+-]$/.test(token) // +- have higher precedence than the other operators.
-					) {
+				) {
 					outputQueue.push(operatorStack.pop());
 				}
 				operatorStack.push(token);
@@ -145,95 +145,286 @@ class Action {
 }
 
 class Conditional {
-	constructor(expression, variables, defaultNamespace, context) {
-		this.evaluator = Conditional.createEvaluator(expression, variables, defaultNamespace, context);
+	constructor(conditionExpression, variables, defaultNamespace, context) {
+		this.conditionExpression = conditionExpression;
+		this.variables = variables;
+		this.defaultNamespace = defaultNamespace;
+		this.context = context;
 	}
 
 	evaluate() {
-		return this.evaluator();
-	}
-
-	static createEvaluator(conditional, variables, defaultNamespace, context) {
-		// Convert range expressions into logical conditions.
-		const tokens = conditional
-			.replace(whiteSpaceRegex, '')
-			.replace(numberRangeRegex, (_, varName, start, end) =>
-				`(${varName}>=${start}&&${varName}<=${end})`
-			).match(conditionalTokenRegex);
-
-		if (!tokens || !tokens.length) {
-			context.throwError('adventure', 'Malformed conditional: ' + conditional);
-		}
-
-		const operators = {
-			'&&': { precedence: 2, associativity: 'left', fn: (a, b) => a && b },
-			'||': { precedence: 1, associativity: 'left', fn: (a, b) => a || b },
-			'>=': { precedence: 3, associativity: 'left', fn: (a, b) => a >= b },
-			'<=': { precedence: 3, associativity: 'left', fn: (a, b) => a <= b },
-			'==': { precedence: 3, associativity: 'left', fn: (a, b) => a === b },
-			'=':  { precedence: 3, associativity: 'left', fn: (a, b) => a === b },
-		};
-
-		// Convert infix to postfix using the Shunting-yard algorithm.
-		const outputQueue = [];
-		const operatorStack = [];
-
-		for (const token of tokens) {
-			if (numberRegex.test(token)) {
-				outputQueue.push(Number(token));
-			} else if (variableRegex.test(token)) {
-				outputQueue.push('v' + Identifier.parse(token, defaultNamespace));
-			} else if (operators[token]) {
-				while (
-					operatorStack.length &&
-					operators[operatorStack[operatorStack.length - 1]] &&
-					(
-						(operators[token].associativity === 'left' &&
-							operators[token].precedence <=
-							operators[operatorStack[operatorStack.length - 1]].precedence) ||
-						(operators[token].associativity === 'right' &&
-							operators[token].precedence <
-							operators[operatorStack[operatorStack.length - 1]].precedence)
-					)
-					) {
-					outputQueue.push(operatorStack.pop());
-				}
-				operatorStack.push(token);
-			} else if (token === '(') {
-				operatorStack.push(token);
-			} else if (token === ')') {
-				while (operatorStack.length && operatorStack[operatorStack.length - 1] !== '(') {
-					outputQueue.push(operatorStack.pop());
-				}
-				operatorStack.pop(); // Remove '('
-			}
-		}
-
-		while (operatorStack.length) {
-			outputQueue.push(operatorStack.pop());
-		}
-
-		// Evaluate the postfix expression.
-		return () => {
-			const stack = [];
-			for (const token of outputQueue) {
-				if (typeof token === 'number') {
-					stack.push(token);
-				} else if (token.startsWith('v')) {
-					const variableIdentifier = token.slice(1);
-					if (variables[variableIdentifier] === undefined) {
-						throw new Error(`Variable ${variableIdentifier} used before assignment.`);
+		//divide the string into tokens
+		let tokens = [];
+		let regexs = [/^[A-Za-z]+:[A-Za-z]+/, /^[A-Za-z]+/, /^((?:-?\d+(?:\.\d+)?\.\.(?:-?\d+(?:\.\d+)?)?)|(?:\.\.-?\d+(\.\d+)?))/, /^-?\d+(?:\.\d+)?/, /^=/, /^</, /^>/, /^<=/, /^>=/, /^&{1,2}/, /^\|{1,2}/, /^!/, /^\(/, /^\)/];
+		{
+			let conditionExpressionSubstring = this.conditionExpression;
+			let tokenNames = [];
+			let regexNames = ["variable", "variable", "range", "number", "equal", "less", "greater", "lessEqual", "greaterEqual", "and", "or", "not", "open", "close"];
+			let valid = true
+			tokenLoop: while (conditionExpressionSubstring.length) {
+				for (let i = 0; i < 14; i++) {
+					let r = regexs[i].exec(conditionExpressionSubstring)?.[0];
+					if (r) {
+						switch (i) {
+							case 0:
+							case 2:
+							case 3:
+								tokens.push(r);
+								break;
+							case 1:
+								tokens.push(namespace + ":" + r);
+								break;
+							default:
+								tokens.push(regexNames[i]);
+								break;
+						}
+						tokenNames.push(regexNames[i]);
+						conditionExpressionSubstring = conditionExpressionSubstring.substring(r.length);
+						continue tokenLoop;
 					}
-					stack.push(variables[variableIdentifier]);
-				} else if (operators[token]) {
-					const b = stack.pop();
-					const a = stack.pop();
-					stack.push(operators[token].fn(a, b));
+				}
+				valid = false;
+				break;
+			}
+			if (!valid) {
+				this.context?.throwError("adventure", "Invalid token found!\nHere -> " + conditionExpressionSubstring);
+			}
+			//substitute ranges for inequalities
+			const rangeUp = (e) => /^-?\d(\.\d+)?\.\.$/.exec(e) != null, rangeDown = (e) => /^\.\.-?\d(\.\d+)?$/.exec(e) != null, rangeContained = (e) => /^-?\d(\.\d+)?\.\.-?\d(\.\d+)?/.exec(e) != null;
+			let i = tokens.findIndex(rangeUp);
+			while (i != -1) {
+				if (tokenNames[i - 2] != "variable" || tokenNames[i - 1] != "equal") {
+					throw new Error("invalid range syntax!");
+				}
+				let lower = tokens[i].substring(0, tokens[i].length - 2);
+				tokens.splice(i - 2, 3, "open", tokens[i - 2], "greaterEqual", lower, "close");
+				tokenNames.splice(i - 2, 3, "open", "variable", "greaterEqual", "number", "close");
+				i = tokens.findIndex(rangeUp);
+			}
+			i = tokens.findIndex(rangeDown);
+			while (i != -1) {
+				if (tokenNames[i - 2] != "variable" || tokenNames[i - 1] != "equal") {
+					throw new Error("invalid range syntax!");
+				}
+				let upper = tokens[i].substring(2);
+				tokens.splice(i - 2, 3, "open", tokens[i - 2], "lessEqual", upper, "close");
+				tokenNames.splice(i - 2, 3, "open", "variable", "lessEqual", "number", "close");
+				i = tokens.findIndex(rangeDown);
+			}
+			i = tokens.findIndex(rangeContained);
+			while (i != -1) {
+				if (tokenNames[i - 2] != "variable" || tokenNames[i - 1] != "equal") {
+					throw new Error("invalid range syntax!");
+				}
+				let [lower, upper] = tokens[i].split("..");
+				tokens.splice(i - 2, 3, "open", tokens[i - 2], "greaterEqual", lower, "and", tokens[i - 2], "lessEqual", upper, "close");
+				tokenNames.splice(i - 2, 3, "open", "variable", "greaterEqual", "number", "and", "variable", "lessEqual", "number", "close");
+				i = tokens.findIndex(rangeContained);
+			}
+		}
+		{
+			//pair up the parenthesises
+			let openIndex = tokens.lastIndexOf("open");
+			while (openIndex != -1) {
+				let closeIndex = tokens.indexOf("close", openIndex + 1);
+				if (closeIndex == -1) {
+					throw new Error("Unpaired open parenthesises!");
+				}
+				tokens.splice(openIndex, closeIndex - openIndex + 1, tokens.slice(openIndex + 1, closeIndex));
+				openIndex = tokens.lastIndexOf("open");
+			}
+			if (tokens.indexOf("close") !== -1) {
+				throw new Error("Unpaired closed parenthesises!");
+			}
+		}
+		//convert to polish/prefix notation
+		function polishify(tokenList) {
+			//objects such as an array is always passed to a function by reference
+			//by modifying the elements of the argument, we are modifying the original array
+	
+			//when we do this step doesn't matter, so we might as well do it now
+			for (let i = 0; i < tokenList.length; i++) {
+				if (tokenList[i] instanceof Array) {
+					polishify(tokenList[i]);
 				}
 			}
-			return Boolean(stack[0]);
-		};
+			//variables, numbers, ranges, and not all have the highest priority
+			//the not operator is already in front of its operand, so we don't have to touch it
+			const precedents = ["equal", "less", "greater", "lessEqual", "greaterEqual", "and", "or"];
+			for (let opIndex = 0; opIndex < 7; opIndex++) {
+				let lowerPrecedents = [];
+				if (opIndex <= 5) {
+					lowerPrecedents.push("and");
+				}
+				if (opIndex <= 6) {
+					lowerPrecedents.push("or");
+				}
+				const op = precedents[opIndex];
+				let i = tokenList.indexOf(op);
+				while (i != -1) {
+					tokenList.splice(i, 1);
+					let j = -1;
+					if (lowerPrecedents.length >= 1) {
+						//if lower precedence operator exists
+						if (!(tokenList[i - 1] instanceof Array) && tokenList[i - 2] == "not") {
+							j = i - 2;
+						} else {
+							j = i - 1;
+							for (; j >= 0; j--) {
+								//drag the operator left, until you hit a lower precendence
+								if (lowerPrecedents.includes(tokenList[j - 1])) {
+									//bonk!
+									j--;
+									break;
+								}
+							}
+						}
+					}
+					//place the operator
+					tokenList.splice(j + 1, 0, op);
+					i = tokenList.indexOf(op, i);
+				}
+			}
+		}
+		polishify(tokens);
+		tokens = tokens.flat(Infinity);
+		//map all variable names to numbers
+		for (let i = 0; i < tokens.length; i++) {
+			if (regexs[0].exec(tokens[i]) != null) {
+				let v = this.variables[tokens[i]];
+				if (v == undefined) {
+					throw new Error(`Variable ${tokens[i]} used before assignment.`);
+				}
+				tokens[i] = v;
+			} else if (regexs[3].exec(tokens[i])) {
+				tokens[i] = Number(tokens[i]);
+			}
+		}
+		//now we have the expression in prefix notation, and can evaluate it with shortcircuiting!
+		function nextCompleteExpression(index) {
+			let counter = 1
+			while (counter > 0) {
+				index++;
+				switch (tokens[index]) {
+					case "equal":
+					case "less":
+					case "greater":
+					case "lessEqual":
+					case "greaterEqual":
+					case "and":
+					case "or":
+						counter++;
+						break;
+					case "not":
+						break;
+					default:
+						counter--;
+						break;
+				}
+			}
+			return index;
+		}
+		let stack = [0];
+		let operations = [];
+		let evaluation;
+		while (stack.length >= 1) {
+			let potentialShort = false;
+			let i = stack.pop();
+			switch (tokens[i]) {
+				case "and":
+				case "or":
+					stack.push(nextCompleteExpression(i) + 1);
+					stack.push(i + 1);
+					operations.push(tokens[i]);
+					break;
+				case "not":
+					stack.push(i + 1);
+					operations.push("not");
+					break;
+				case "equal":
+					{
+						let a = tokens[i + 1];
+						let b = tokens[i + 2];
+						if (typeof a != "number" || typeof b != "number") {
+							throw new Error("Bad ordering");
+						}
+						evaluation = a == b;
+					}
+					potentialShort = true;
+					break;
+				case "less":
+					{
+						let a = tokens[i + 1];
+						let b = tokens[i + 2];
+						if (typeof a != "number" || typeof b != "number") {
+							throw new Error("Bad ordering");
+						}
+						evaluation = a < b;
+					}
+					potentialShort = true;
+					break;
+				case "greater":
+					{
+						let a = tokens[i + 1];
+						let b = tokens[i + 2];
+						if (typeof a != "number" || typeof b != "number") {
+							throw new Error("Bad ordering");
+						}
+						evaluation = a > b;
+					}
+					potentialShort = true;
+					break;
+				case "lessEqual":
+					{
+						let a = tokens[i + 1];
+						let b = tokens[i + 2];
+						if (typeof a != "number" || typeof b != "number") {
+							throw new Error("Bad ordering");
+						}
+						evaluation = a <= b;
+					}
+					potentialShort = true;
+					break;
+				case "greaterEqual":
+					{
+						let a = tokens[i + 1];
+						let b = tokens[i + 2];
+						if (typeof a != "number" || typeof b != "number") {
+							throw new Error("Bad ordering");
+						}
+						evaluation = a >= b;
+					}
+					potentialShort = true;
+					break;
+			}
+			while (potentialShort) {
+				switch (operations.pop()) {
+					case "not":
+						evaluation = !evaluation;
+						break;
+					case "and":
+						if (evaluation) {
+							potentialShort = false;
+						} else {
+							stack.pop();
+						}
+						break;
+					case "or":
+						if (evaluation) {
+							stack.pop();
+						} else {
+							potentialShort = false;
+						}
+						break;
+					default:
+						potentialShort = false;
+						break;
+				}
+			}
+		}
+		return evaluation;
 	}
+	
 }
 
 class ContextMock {
@@ -413,7 +604,7 @@ const testActions = (assert) => {
 		const action = new Action('y=(7-2)*x+7', variables, 'test', context);
 		action.evaluate();
 
-		const expectedResult = (7-2)*x+7;
+		const expectedResult = (7 - 2) * x + 7;
 		assert.strictEqual(variables['test:y'], expectedResult, 'FAI: Test 8: Expression with parentheses and precedence');
 	}
 
