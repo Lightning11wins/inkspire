@@ -190,7 +190,7 @@ class Conditional {
 				this.context?.throwError("adventure", "Invalid token found!\nHere -> " + conditionExpressionSubstring);
 			}
 			//substitute ranges for inequalities
-			const rangeUp = (e) => /^-?\d(\.\d+)?\.\.$/.exec(e) != null, rangeDown = (e) => /^\.\.-?\d(\.\d+)?$/.exec(e) != null, rangeContained = (e) => /^-?\d(\.\d+)?\.\.-?\d(\.\d+)?/.exec(e) != null;
+			const rangeUp = (e) => /^-?\d+(\.\d+)?\.\.$/.exec(e) != null, rangeDown = (e) => /^\.\.-?\d+(\.\d+)?$/.exec(e) != null, rangeContained = (e) => /^-?\d+(\.\d+)?\.\.-?\d+(\.\d+)?/.exec(e) != null;
 			let i = tokens.findIndex(rangeUp);
 			while (i != -1) {
 				if (tokenNames[i - 2] != "variable" || tokenNames[i - 1] != "equal") {
