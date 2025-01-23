@@ -146,7 +146,7 @@ class Action {
 
 class Conditional {
 	constructor(conditionExpression, variables, defaultNamespace, context) {
-		this.conditionExpression = conditionExpression;
+		this.conditionExpression = conditionExpression.replaceAll(" ", "");
 		this.variables = variables;
 		this.defaultNamespace = defaultNamespace;
 		this.context = context;
