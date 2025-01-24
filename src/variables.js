@@ -146,24 +146,19 @@ class Action {
 
 class Conditional {
 	constructor(conditionExpression, variables, defaultNamespace, context) {
-		this.conditionExpression = conditionExpression.replaceAll(" ", "");
 		this.variables = variables;
 		this.defaultNamespace = defaultNamespace;
 		this.context = context;
-	}
-
-	evaluate() {
 		//divide the string into tokens
 		let tokens = [];
 		let regexs = [/^[A-Za-z]+:[A-Za-z]+/, /^[A-Za-z]+/, /^((?:-?\d+(?:\.\d+)?\.\.(?:-?\d+(?:\.\d+)?)?)|(?:\.\.-?\d+(\.\d+)?))/, /^-?\d+(?:\.\d+)?/, /^={1,2}/, /^</, /^>/, /^<=/, /^>=/, /^&{1,2}/, /^\|{1,2}/, /^!/, /^\(/, /^\)/];
 		{
-			let conditionExpressionSubstring = this.conditionExpression;
 			let tokenNames = [];
 			let regexNames = ["variable", "variable", "range", "number", "equal", "less", "greater", "lessEqual", "greaterEqual", "and", "or", "not", "open", "close"];
 			let valid = true
-			tokenLoop: while (conditionExpressionSubstring.length) {
+			tokenLoop: while (conditionExpression.length) {
 				for (let i = 0; i < 14; i++) {
-					let r = regexs[i].exec(conditionExpressionSubstring)?.[0];
+					let r = regexs[i].exec(conditionExpression)?.[0];
 					if (r) {
 						switch (i) {
 							case 0:
@@ -179,7 +174,7 @@ class Conditional {
 								break;
 						}
 						tokenNames.push(regexNames[i]);
-						conditionExpressionSubstring = conditionExpressionSubstring.substring(r.length);
+						conditionExpression = conditionExpression.substring(r.length);
 						continue tokenLoop;
 					}
 				}
@@ -187,14 +182,14 @@ class Conditional {
 				break;
 			}
 			if (!valid) {
-				this.context?.throwError("adventure", "Invalid token found!\nHere -> " + conditionExpressionSubstring);
+				context.throwError("adventure", "Invalid token found!\nHere -> " + conditionExpression);
 			}
 			//substitute ranges for inequalities
-			const rangeUp = (e) => /^-?\d+(\.\d+)?\.\.$/.exec(e) != null, rangeDown = (e) => /^\.\.-?\d+(\.\d+)?$/.exec(e) != null, rangeContained = (e) => /^-?\d+(\.\d+)?\.\.-?\d+(\.\d+)?/.exec(e) != null;
+			const rangeUp = (e) => /^-?\d+(\.\d+)?\.\.$/.test(e), rangeDown = (e) => /^\.\.-?\d+(\.\d+)?$/.test(e), rangeContained = (e) => /^-?\d+(\.\d+)?\.\.-?\d+(\.\d+)?/.test(e);
 			let i = tokens.findIndex(rangeUp);
 			while (i != -1) {
 				if (tokenNames[i - 2] != "variable" || tokenNames[i - 1] != "equal") {
-					throw new Error("invalid range syntax!");
+					context.throwError("adventure", "invalid range syntax!");
 				}
 				let lower = tokens[i].substring(0, tokens[i].length - 2);
 				tokens.splice(i - 2, 3, "open", tokens[i - 2], "greaterEqual", lower, "close");
@@ -204,7 +199,7 @@ class Conditional {
 			i = tokens.findIndex(rangeDown);
 			while (i != -1) {
 				if (tokenNames[i - 2] != "variable" || tokenNames[i - 1] != "equal") {
-					throw new Error("invalid range syntax!");
+					context.throwError("adventure", "invalid range syntax!");
 				}
 				let upper = tokens[i].substring(2);
 				tokens.splice(i - 2, 3, "open", tokens[i - 2], "lessEqual", upper, "close");
@@ -214,12 +209,31 @@ class Conditional {
 			i = tokens.findIndex(rangeContained);
 			while (i != -1) {
 				if (tokenNames[i - 2] != "variable" || tokenNames[i - 1] != "equal") {
-					throw new Error("invalid range syntax!");
+					context.throwError("adventure", "invalid range syntax!");
 				}
 				let [lower, upper] = tokens[i].split("..");
 				tokens.splice(i - 2, 3, "open", tokens[i - 2], "greaterEqual", lower, "and", tokens[i - 2], "lessEqual", upper, "close");
 				tokenNames.splice(i - 2, 3, "open", "variable", "greaterEqual", "number", "and", "variable", "lessEqual", "number", "close");
 				i = tokens.findIndex(rangeContained);
+			}
+			//check for invalid comparisons, also convert number tokens to numbers while we're at it
+			for (i = 0; i < tokens.length; i++) {
+				switch (tokenNames[i]) {
+					case "equal":
+					case "less":
+					case "greater":
+					case "lessEqual":
+					case "greaterEqual":
+						if (!(tokenNames[i - 1] == "variable" || tokenNames[i - 1] == "number") || !(tokenNames[i + 1] == "variable" || tokenNames[i + 1] == "number")) {
+							context.throwError("adventure", "invalid comparison operands!");
+						}
+						break;
+					case "number":
+						tokens[i] = Number(tokens[i]);
+						break;
+					default:
+						break;
+				}
 			}
 		}
 		{
@@ -228,20 +242,20 @@ class Conditional {
 			while (openIndex != -1) {
 				let closeIndex = tokens.indexOf("close", openIndex + 1);
 				if (closeIndex == -1) {
-					throw new Error("Unpaired open parenthesises!");
+					context.throwError("adventure", "Unpaired open parenthesises!");
 				}
 				tokens.splice(openIndex, closeIndex - openIndex + 1, tokens.slice(openIndex + 1, closeIndex));
 				openIndex = tokens.lastIndexOf("open");
 			}
 			if (tokens.indexOf("close") !== -1) {
-				throw new Error("Unpaired closed parenthesises!");
+				context.throwError("adventure", "Unpaired closed parenthesises!");
 			}
 		}
 		//convert to polish/prefix notation
 		function polishify(tokenList) {
 			//objects such as an array is always passed to a function by reference
 			//by modifying the elements of the argument, we are modifying the original array
-	
+
 			//when we do this step doesn't matter, so we might as well do it now
 			for (let i = 0; i < tokenList.length; i++) {
 				if (tokenList[i] instanceof Array) {
@@ -271,7 +285,7 @@ class Conditional {
 						} else {
 							j = i - 1;
 							for (; j >= 0; j--) {
-								//drag the operator left, until you hit a lower precendence
+								//drag the operator left, until you hit a lower precendence or the beginning
 								if (lowerPrecedents.includes(tokenList[j - 1])) {
 									//bonk!
 									j--;
@@ -287,7 +301,10 @@ class Conditional {
 			}
 		}
 		polishify(tokens);
-		tokens = tokens.flat(Infinity);
+		this.tokens = tokens.flat(Infinity);
+	}
+
+	evaluate() {
 		//map all variable names to numbers
 		for (let i = 0; i < tokens.length; i++) {
 			if (regexs[0].exec(tokens[i]) != null) {
@@ -296,8 +313,6 @@ class Conditional {
 					throw new Error(`Variable ${tokens[i]} used before assignment.`);
 				}
 				tokens[i] = v;
-			} else if (regexs[3].exec(tokens[i])) {
-				tokens[i] = Number(tokens[i]);
 			}
 		}
 		//now we have the expression in prefix notation, and can evaluate it with shortcircuiting!
@@ -424,7 +439,7 @@ class Conditional {
 		}
 		return evaluation;
 	}
-	
+
 }
 
 class ContextMock {
