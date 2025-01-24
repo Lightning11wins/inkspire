@@ -156,7 +156,7 @@ class Conditional {
 			let conditionExpressionSubstring = conditionExpression.replaceAll(" ", "");
 			let tokenNames = [];
 			let regexNames = ["variable", "variable", "range", "number", "equal", "less", "greater", "lessEqual", "greaterEqual", "and", "or", "not", "open", "close"];
-			let valid = true
+			let valid = true;
 			tokenLoop: while (conditionExpressionSubstring.length) {
 				for (let i = 0; i < 14; i++) {
 					let r = regexs[i].exec(conditionExpressionSubstring)?.[0];
@@ -318,7 +318,7 @@ class Conditional {
 		}
 		//now we have the expression in prefix notation, and can evaluate it with shortcircuiting!
 		function nextCompleteExpression(index) {
-			let counter = 1
+			let counter = 1;
 			while (counter > 0) {
 				index++;
 				switch (tokens[index]) {
