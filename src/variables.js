@@ -153,12 +153,13 @@ class Conditional {
 		let tokens = [];
 		let regexs = [/^[A-Za-z]+:[A-Za-z]+/, /^[A-Za-z]+/, /^((?:-?\d+(?:\.\d+)?\.\.(?:-?\d+(?:\.\d+)?)?)|(?:\.\.-?\d+(\.\d+)?))/, /^-?\d+(?:\.\d+)?/, /^={1,2}/, /^</, /^>/, /^<=/, /^>=/, /^&{1,2}/, /^\|{1,2}/, /^!/, /^\(/, /^\)/];
 		{
+			conditionExpressionSubstring = conditionExpression.replaceAll(" ", "");
 			let tokenNames = [];
 			let regexNames = ["variable", "variable", "range", "number", "equal", "less", "greater", "lessEqual", "greaterEqual", "and", "or", "not", "open", "close"];
 			let valid = true
-			tokenLoop: while (conditionExpression.length) {
+			tokenLoop: while (conditionExpressionSubstring.length) {
 				for (let i = 0; i < 14; i++) {
-					let r = regexs[i].exec(conditionExpression)?.[0];
+					let r = regexs[i].exec(conditionExpressionSubstring)?.[0];
 					if (r) {
 						switch (i) {
 							case 0:
@@ -174,7 +175,7 @@ class Conditional {
 								break;
 						}
 						tokenNames.push(regexNames[i]);
-						conditionExpression = conditionExpression.substring(r.length);
+						conditionExpressionSubstring = conditionExpressionSubstring.substring(r.length);
 						continue tokenLoop;
 					}
 				}
@@ -182,7 +183,7 @@ class Conditional {
 				break;
 			}
 			if (!valid) {
-				context.throwError("adventure", "Invalid token found!\nHere -> " + conditionExpression);
+				context.throwError("adventure", "Invalid token found!\nHere -> " + conditionExpressionSubstring);
 			}
 			//substitute ranges for inequalities
 			const rangeUp = (e) => /^-?\d+(\.\d+)?\.\.$/.test(e), rangeDown = (e) => /^\.\.-?\d+(\.\d+)?$/.test(e), rangeContained = (e) => /^-?\d+(\.\d+)?\.\.-?\d+(\.\d+)?/.test(e);
