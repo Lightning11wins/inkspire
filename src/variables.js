@@ -361,9 +361,6 @@ class Conditional {
 					{
 						let a = tokens[i + 1];
 						let b = tokens[i + 2];
-						if (typeof a != "number" || typeof b != "number") {
-							throw new Error("Bad ordering");
-						}
 						evaluation = a == b;
 					}
 					potentialShort = true;
@@ -372,9 +369,6 @@ class Conditional {
 					{
 						let a = tokens[i + 1];
 						let b = tokens[i + 2];
-						if (typeof a != "number" || typeof b != "number") {
-							throw new Error("Bad ordering");
-						}
 						evaluation = a < b;
 					}
 					potentialShort = true;
@@ -383,9 +377,6 @@ class Conditional {
 					{
 						let a = tokens[i + 1];
 						let b = tokens[i + 2];
-						if (typeof a != "number" || typeof b != "number") {
-							throw new Error("Bad ordering");
-						}
 						evaluation = a > b;
 					}
 					potentialShort = true;
@@ -394,9 +385,6 @@ class Conditional {
 					{
 						let a = tokens[i + 1];
 						let b = tokens[i + 2];
-						if (typeof a != "number" || typeof b != "number") {
-							throw new Error("Bad ordering");
-						}
 						evaluation = a <= b;
 					}
 					potentialShort = true;
@@ -405,9 +393,6 @@ class Conditional {
 					{
 						let a = tokens[i + 1];
 						let b = tokens[i + 2];
-						if (typeof a != "number" || typeof b != "number") {
-							throw new Error("Bad ordering");
-						}
 						evaluation = a >= b;
 					}
 					potentialShort = true;
