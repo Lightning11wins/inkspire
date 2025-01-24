@@ -153,7 +153,7 @@ class Conditional {
 		let tokens = [];
 		let regexs = [/^[A-Za-z]+:[A-Za-z]+/, /^[A-Za-z]+/, /^((?:-?\d+(?:\.\d+)?\.\.(?:-?\d+(?:\.\d+)?)?)|(?:\.\.-?\d+(\.\d+)?))/, /^-?\d+(?:\.\d+)?/, /^={1,2}/, /^</, /^>/, /^<=/, /^>=/, /^&{1,2}/, /^\|{1,2}/, /^!/, /^\(/, /^\)/];
 		{
-			conditionExpressionSubstring = conditionExpression.replaceAll(" ", "");
+			let conditionExpressionSubstring = conditionExpression.replaceAll(" ", "");
 			let tokenNames = [];
 			let regexNames = ["variable", "variable", "range", "number", "equal", "less", "greater", "lessEqual", "greaterEqual", "and", "or", "not", "open", "close"];
 			let valid = true
